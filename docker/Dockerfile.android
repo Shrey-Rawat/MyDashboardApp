@@ -1,0 +1,92 @@
+# Android Emulator Dockerfile
+FROM ubuntu:22.04
+
+# Avoid prompts from apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set up environment variables
+ENV ANDROID_HOME=/opt/android-sdk
+ENV ANDROID_SDK_ROOT=$ANDROID_HOME
+ENV PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip \
+    openjdk-11-jdk \
+    lib32stdc++6 \
+    lib32z1 \
+    libc6-i386 \
+    libqt5widgets5 \
+    xvfb \
+    x11vnc \
+    pulseaudio \
+    socat \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create android user
+RUN useradd -m -s /bin/bash android
+RUN mkdir -p $ANDROID_HOME
+RUN chown -R android:android $ANDROID_HOME
+
+# Switch to android user
+USER android
+WORKDIR /home/android
+
+# Download and install Android SDK Command Line Tools
+RUN wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+RUN unzip commandlinetools-linux-9477386_latest.zip
+RUN mkdir -p $ANDROID_HOME/cmdline-tools
+RUN mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+RUN rm commandlinetools-linux-9477386_latest.zip
+
+# Accept licenses and install packages
+RUN yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+RUN $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+    "platform-tools" \
+    "platforms;android-33" \
+    "build-tools;33.0.2" \
+    "emulator" \
+    "system-images;android-33;google_apis;x86_64"
+
+# Create AVD
+RUN echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd \
+    -n test_device \
+    -k "system-images;android-33;google_apis;x86_64" \
+    -d "pixel_4"
+
+# Set up VNC and display
+ENV DISPLAY=:1
+EXPOSE 5901
+EXPOSE 5037
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+# Start Xvfb\n\
+Xvfb :1 -screen 0 1024x768x24 &\n\
+\n\
+# Start VNC server\n\
+x11vnc -display :1 -nopw -listen 0.0.0.0 -forever -rfbport 5901 &\n\
+\n\
+# Start ADB server\n\
+adb start-server\n\
+\n\
+# Start pulseaudio\n\
+pulseaudio --start --exit-idle-time=-1\n\
+\n\
+# Start emulator with audio\n\
+cd $ANDROID_HOME\n\
+./emulator/emulator -avd test_device -no-snapshot -wipe-data -gpu swiftshader_indirect -no-audio -skin 1080x1920 &\n\
+\n\
+# Wait for emulator to boot\n\
+adb wait-for-device\n\
+echo "Emulator started successfully"\n\
+\n\
+# Keep container running\n\
+tail -f /dev/null\n\
+' > /home/android/start_emulator.sh
+
+RUN chmod +x /home/android/start_emulator.sh
+
+CMD ["/home/android/start_emulator.sh"]

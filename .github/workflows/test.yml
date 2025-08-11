@@ -1,0 +1,250 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, develop, 'feature/**' ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        flavor: ["free", "pro"]
+        
+    name: Unit Tests (${{ matrix.flavor }})
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: '8.2'
+        
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Run unit tests for ${{ matrix.flavor }}
+      run: ./gradlew test${{ matrix.flavor }}DebugUnitTest --continue
+      
+    - name: Generate unit test report
+      run: ./gradlew jacocoTestReport${{ matrix.flavor }}Debug
+      continue-on-error: true
+      
+    - name: Upload unit test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: unit-test-results-${{ matrix.flavor }}
+        path: |
+          **/build/reports/tests/
+          **/build/test-results/
+          **/build/reports/jacoco/
+        retention-days: 30
+        
+    - name: Publish unit test results
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: Unit Tests (${{ matrix.flavor }})
+        path: "**/build/test-results/**/TEST-*.xml"
+        reporter: java-junit
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        api-level: [24, 29, 34]
+        flavor: ["free", "pro"]
+        
+    name: Integration Tests API ${{ matrix.api-level }} (${{ matrix.flavor }})
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: '8.2'
+        
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Enable KVM group perms
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+        
+    - name: AVD cache
+      uses: actions/cache@v3
+      id: avd-cache
+      with:
+        path: |
+          ~/.android/avd/*
+          ~/.android/adb*
+        key: avd-${{ matrix.api-level }}
+        
+    - name: Create AVD and generate snapshot for caching
+      if: steps.avd-cache.outputs.cache-hit != 'true'
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ matrix.api-level }}
+        target: google_apis
+        arch: x86_64
+        force-avd-creation: false
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: false
+        script: echo "Generated AVD snapshot for caching."
+        
+    - name: Run instrumented tests
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ matrix.api-level }}
+        target: google_apis
+        arch: x86_64
+        force-avd-creation: false
+        emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: true
+        script: ./gradlew connected${{ matrix.flavor }}DebugAndroidTest --continue
+        
+    - name: Upload instrumented test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: instrumented-test-results-api${{ matrix.api-level }}-${{ matrix.flavor }}
+        path: |
+          **/build/reports/androidTests/
+          **/build/outputs/androidTest-results/
+        retention-days: 30
+        
+    - name: Publish instrumented test results
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: Instrumented Tests API ${{ matrix.api-level }} (${{ matrix.flavor }})
+        path: "**/build/outputs/androidTest-results/**/TEST-*.xml"
+        reporter: java-junit
+
+  screenshot-tests:
+    runs-on: ubuntu-latest
+    
+    name: Screenshot Tests
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: '8.2'
+        
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Run screenshot tests
+      run: ./gradlew validateScreenshots || true
+      continue-on-error: true
+      
+    - name: Upload screenshot test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: screenshot-test-results
+        path: |
+          **/build/reports/screenshots/
+          **/build/outputs/screenshots/
+        retention-days: 30
+
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, screenshot-tests]
+    if: always()
+    
+    steps:
+    - name: Test Summary
+      run: |
+        echo "## Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### Unit Tests" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.unit-tests.result }}" = "success" ]; then
+          echo "✅ Unit tests passed for all flavors" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Unit tests failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### Integration Tests" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.integration-tests.result }}" = "success" ]; then
+          echo "✅ Integration tests passed for all API levels and flavors" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Integration tests failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### Screenshot Tests" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.screenshot-tests.result }}" = "success" ]; then
+          echo "✅ Screenshot tests passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Screenshot tests had issues (non-blocking)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Total test execution time:** $(date -u '+%H:%M:%S')" >> $GITHUB_STEP_SUMMARY

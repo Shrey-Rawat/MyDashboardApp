@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="300dp"
+            android:height="20dp"
+            android:viewportWidth="300"
+            android:viewportHeight="20">
+
+            <!-- Background track -->
+            <path
+                android:fillColor="#1A2332"
+                android:pathData="M10,5 L290,5 Q295,5 295,10 Q295,15 290,15 L10,15 Q5,15 5,10 Q5,5 10,5 Z" />
+            
+            <!-- Progress segments (10 segments) -->
+            <!-- Segment 1 -->
+            <path
+                android:name="segment1"
+                android:fillColor="#00E6CC"
+                android:fillAlpha="1.0"
+                android:pathData="M15,7 L40,7 Q42,7 42,10 Q42,13 40,13 L15,13 Q13,13 13,10 Q13,7 15,7 Z" />
+            
+            <!-- Segment 2 -->
+            <path
+                android:name="segment2"
+                android:fillColor="#00E6CC"
+                android:fillAlpha="0.8"
+                android:pathData="M50,7 L75,7 Q77,7 77,10 Q77,13 75,13 L50,13 Q48,13 48,10 Q48,7 50,7 Z" />
+            
+            <!-- Segment 3 -->
+            <path
+                android:name="segment3"
+                android:fillColor="#00E6CC"
+                android:fillAlpha="0.6"
+                android:pathData="M85,7 L110,7 Q112,7 112,10 Q112,13 110,13 L85,13 Q83,13 83,10 Q83,7 85,7 Z" />
+            
+            <!-- Segment 4 -->
+            <path
+                android:name="segment4"
+                android:fillColor="#00E6CC"
+                android:fillAlpha="0.4"
+                android:pathData="M120,7 L145,7 Q147,7 147,10 Q147,13 145,13 L120,13 Q118,13 118,10 Q118,7 120,7 Z" />
+            
+            <!-- Segment 5 -->
+            <path
+                android:name="segment5"
+                android:fillColor="#00E6CC"
+                android:fillAlpha="0.2"
+                android:pathData="M155,7 L180,7 Q182,7 182,10 Q182,13 180,13 L155,13 Q153,13 153,10 Q153,7 155,7 Z" />
+            
+            <!-- Segment 6 -->
+            <path
+                android:name="segment6"
+                android:fillColor="#2A4A6C"
+                android:fillAlpha="0.3"
+                android:pathData="M190,7 L215,7 Q217,7 217,10 Q217,13 215,13 L190,13 Q188,13 188,10 Q188,7 190,7 Z" />
+            
+            <!-- Segment 7 -->
+            <path
+                android:name="segment7"
+                android:fillColor="#2A4A6C"
+                android:fillAlpha="0.3"
+                android:pathData="M225,7 L250,7 Q252,7 252,10 Q252,13 250,13 L225,13 Q223,13 223,10 Q223,7 225,7 Z" />
+            
+            <!-- Segment 8 -->
+            <path
+                android:name="segment8"
+                android:fillColor="#2A4A6C"
+                android:fillAlpha="0.3"
+                android:pathData="M260,7 L285,7 Q287,7 287,10 Q287,13 285,13 L260,13 Q258,13 258,10 Q258,7 260,7 Z" />
+        </vector>
+    </aapt:attr>
+
+    <!-- Animated loading wave effect -->
+    <target android:name="segment1">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:duration="1200"
+                android:valueFrom="0.3"
+                android:valueTo="1.0"
+                android:valueType="floatType"
+                android:repeatCount="infinite"
+                android:startOffset="0"
+                android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="segment2">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:duration="1200"
+                android:valueFrom="0.3"
+                android:valueTo="1.0"
+                android:valueType="floatType"
+                android:repeatCount="infinite"
+                android:startOffset="150"
+                android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="segment3">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:duration="1200"
+                android:valueFrom="0.3"
+                android:valueTo="1.0"
+                android:valueType="floatType"
+                android:repeatCount="infinite"
+                android:startOffset="300"
+                android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="segment4">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:duration="1200"
+                android:valueFrom="0.3"
+                android:valueTo="1.0"
+                android:valueType="floatType"
+                android:repeatCount="infinite"
+                android:startOffset="450"
+                android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="segment5">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:duration="1200"
+                android:valueFrom="0.3"
+                android:valueTo="1.0"
+                android:valueType="floatType"
+                android:repeatCount="infinite"
+                android:startOffset="600"
+                android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="segment6">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:duration="1200"
+                android:valueFrom="0.3"
+                android:valueTo="1.0"
+                android:valueType="floatType"
+                android:repeatCount="infinite"
+                android:startOffset="750"
+                android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="segment7">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:duration="1200"
+                android:valueFrom="0.3"
+                android:valueTo="1.0"
+                android:valueType="floatType"
+                android:repeatCount="infinite"
+                android:startOffset="900"
+                android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="segment8">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:duration="1200"
+                android:valueFrom="0.3"
+                android:valueTo="1.0"
+                android:valueType="floatType"
+                android:repeatCount="infinite"
+                android:startOffset="1050"
+                android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+</animated-vector>

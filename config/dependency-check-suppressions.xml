@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!-- 
+    This file contains suppressions for OWASP Dependency Check to ignore false positives
+    and known acceptable vulnerabilities.
+    
+    Each suppression should include:
+    1. A clear reason for the suppression
+    2. The specific CVE or vulnerability being suppressed
+    3. The file path or GAV coordinates
+    -->
+    
+    <!-- Example suppressions - remove/modify as needed for your project -->
+    
+    <!-- Suppress vulnerabilities in test dependencies -->
+    <suppress>
+        <notes>Test dependency vulnerabilities are not exploitable in production</notes>
+        <filePath regex="true">.*test.*\.jar</filePath>
+        <cve>CVE-2020-8908</cve>
+    </suppress>
+    
+    <!-- Suppress known false positives for Android/Kotlin projects -->
+    <suppress>
+        <notes>False positive for Android projects</notes>
+        <gav regex="true">org\.jetbrains\.kotlin:.*</gav>
+        <cve>CVE-2019-10241</cve>
+    </suppress>
+    
+    <!-- Add your project-specific suppressions below -->
+    
+</suppressions>

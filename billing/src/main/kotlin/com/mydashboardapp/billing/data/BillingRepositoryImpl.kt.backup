@@ -1,0 +1,398 @@
+package com.bestproductivityapp.billing.data
+
+import android.app.Activity
+import android.content.Context
+import com.android.billingclient.api.*
+import com.bestproductivityapp.billing.domain.model.*
+import com.bestproductivityapp.billing.domain.repository.BillingRepository
+import com.bestproductivityapp.billing.domain.repository.PremiumFeature
+import com.bestproductivityapp.core.data.UserPreferencesRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.coroutines.resume
+
+@Singleton
+class BillingRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val userPreferencesRepository: UserPreferencesRepository
+) : BillingRepository {
+
+    private var billingClient: BillingClient? = null
+    private val connectionMutex = Mutex()
+    
+    private val _premiumState = MutableStateFlow(PremiumState())
+    override val premiumState: Flow<PremiumState> = _premiumState.asStateFlow()
+    
+    private val _products = MutableStateFlow<BillingResult<List<ProductDetails>>>(BillingResult.NotInitialized)
+    override val products: Flow<BillingResult<List<ProductDetails>>> = _products.asStateFlow()
+
+    private val productIds = listOf(
+        SubscriptionType.MONTHLY.productId,
+        SubscriptionType.YEARLY.productId,
+        SubscriptionType.LIFETIME.productId
+    )
+
+    override suspend fun initialize(): BillingResult<Unit> = connectionMutex.withLock {
+        return suspendCancellableCoroutine { continuation ->
+            val purchasesUpdatedListener = PurchasesUpdatedListener { billingResult, purchases ->
+                handlePurchasesUpdate(billingResult, purchases)
+            }
+
+            billingClient = BillingClient.newBuilder(context)
+                .setListener(purchasesUpdatedListener)
+                .enablePendingPurchases()
+                .build()
+
+            billingClient?.startConnection(object : BillingClientStateListener {
+                override fun onBillingSetupFinished(billingResult: BillingResult) {
+                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                        // Query existing purchases
+                        queryExistingPurchases()
+                        // Load products
+                        loadProducts()
+                        continuation.resume(BillingResult.Success(Unit))
+                    } else {
+                        continuation.resume(
+                            BillingResult.Error(
+                                billingResult.responseCode,
+                                billingResult.debugMessage
+                            )
+                        )
+                    }
+                }
+
+                override fun onBillingServiceDisconnected() {
+                    // Retry connection could be implemented here
+                }
+            })
+        }
+    }
+
+    override suspend fun startPurchaseFlow(
+        productDetails: ProductDetails,
+        offerToken: String?
+    ): BillingResult<Unit> {
+        val client = billingClient ?: return BillingResult.NotInitialized
+        
+        return suspendCancellableCoroutine { continuation ->
+            try {
+                // Get current activity (you'll need to inject this or pass it)
+                val activity = context as? Activity 
+                    ?: return@suspendCancellableCoroutine continuation.resume(
+                        BillingResult.Error(-1, "Activity context required for purchase flow")
+                    )
+
+                val productDetailsParams = when (productDetails.productType) {
+                    ProductType.SUBS -> {
+                        val subscriptionOfferDetails = productDetails.subscriptionOfferDetails?.firstOrNull()
+                            ?: return@suspendCancellableCoroutine continuation.resume(
+                                BillingResult.Error(-1, "No subscription offer available")
+                            )
+                        
+                        BillingFlowParams.ProductDetailsParams.newBuilder()
+                            .setProductDetails(convertToGoogleProductDetails(productDetails))
+                            .setOfferToken(subscriptionOfferDetails.offerId ?: offerToken ?: "")
+                            .build()
+                    }
+                    ProductType.INAPP -> {
+                        BillingFlowParams.ProductDetailsParams.newBuilder()
+                            .setProductDetails(convertToGoogleProductDetails(productDetails))
+                            .build()
+                    }
+                }
+
+                val billingFlowParams = BillingFlowParams.newBuilder()
+                    .setProductDetailsParamsList(listOf(productDetailsParams))
+                    .build()
+
+                val billingResult = client.launchBillingFlow(activity, billingFlowParams)
+                
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    continuation.resume(BillingResult.Success(Unit))
+                } else {
+                    continuation.resume(
+                        BillingResult.Error(
+                            billingResult.responseCode,
+                            billingResult.debugMessage
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                continuation.resume(BillingResult.Error(-1, e.message ?: "Unknown error"))
+            }
+        }
+    }
+
+    override suspend fun queryPurchases(): BillingResult<List<PurchaseInfo>> {
+        val client = billingClient ?: return BillingResult.NotInitialized
+        
+        return try {
+            val subscriptions = client.queryPurchasesAsync(BillingClient.ProductType.SUBS)
+            val inAppPurchases = client.queryPurchasesAsync(BillingClient.ProductType.INAPP)
+            
+            val allPurchases = mutableListOf<Purchase>()
+            allPurchases.addAll(subscriptions.purchasesList)
+            allPurchases.addAll(inAppPurchases.purchasesList)
+            
+            val purchaseInfoList = allPurchases.map { purchase ->
+                PurchaseInfo(
+                    purchaseToken = purchase.purchaseToken,
+                    productId = purchase.products.first(),
+                    purchaseTime = purchase.purchaseTime,
+                    purchaseState = purchase.purchaseState,
+                    isAcknowledged = purchase.isAcknowledged,
+                    isAutoRenewing = purchase.isAutoRenewing,
+                    orderId = purchase.orderId
+                )
+            }
+            
+            BillingResult.Success(purchaseInfoList)
+        } catch (e: Exception) {
+            BillingResult.Error(-1, e.message ?: "Failed to query purchases")
+        }
+    }
+
+    override suspend fun acknowledgePurchase(purchaseToken: String): BillingResult<Unit> {
+        val client = billingClient ?: return BillingResult.NotInitialized
+        
+        return suspendCancellableCoroutine { continuation ->
+            try {
+                val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
+                    .setPurchaseToken(purchaseToken)
+                    .build()
+                    
+                client.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
+                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                        continuation.resume(BillingResult.Success(Unit))
+                    } else {
+                        continuation.resume(
+                            BillingResult.Error(billingResult.responseCode, billingResult.debugMessage)
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                continuation.resume(BillingResult.Error(-1, e.message ?: "Failed to acknowledge purchase"))
+            }
+        }
+    }
+
+    override suspend fun consumePurchase(purchaseToken: String): BillingResult<Unit> {
+        val client = billingClient ?: return BillingResult.NotInitialized
+        
+        return suspendCancellableCoroutine { continuation ->
+            try {
+                val consumeParams = ConsumeParams.newBuilder()
+                    .setPurchaseToken(purchaseToken)
+                    .build()
+                    
+                client.consumeAsync(consumeParams) { billingResult, purchaseToken ->
+                    if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                        continuation.resume(BillingResult.Success(Unit))
+                    } else {
+                        continuation.resume(
+                            BillingResult.Error(
+                                billingResult.responseCode, 
+                                billingResult.debugMessage
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                continuation.resume(BillingResult.Error(-1, e.message ?: "Failed to consume purchase"))
+            }
+        }
+    }
+
+    override suspend fun validatePurchase(purchaseInfo: PurchaseInfo): PurchaseValidationResult {
+        // In a real implementation, this would validate the purchase with your backend
+        // For now, we'll do basic client-side validation
+        return when {
+            purchaseInfo.purchaseState == Purchase.PurchaseState.PURCHASED -> {
+                PurchaseValidationResult.Valid
+            }
+            purchaseInfo.purchaseState == Purchase.PurchaseState.PENDING -> {
+                PurchaseValidationResult.Pending
+            }
+            else -> {
+                PurchaseValidationResult.Invalid("Invalid purchase state")
+            }
+        }
+    }
+
+    override fun isFeatureAvailable(feature: PremiumFeature): Flow<Boolean> {
+        return premiumState.map { state ->
+            if (state.isPro) {
+                true
+            } else {
+                // For features with limits, check if limit allows usage
+                feature.freeLimit != 0
+            }
+        }
+    }
+
+    override fun getFeatureLimit(feature: PremiumFeature): Flow<Int> {
+        return premiumState.map { state ->
+            if (state.isPro) {
+                -1 // Unlimited for pro users
+            } else {
+                feature.freeLimit
+            }
+        }
+    }
+
+    override suspend fun updatePremiumState(premiumState: PremiumState) {
+        _premiumState.value = premiumState
+        userPreferencesRepository.upgradeToProVersion()
+    }
+
+    override suspend fun clearPremiumState() {
+        _premiumState.value = PremiumState()
+    }
+
+    override suspend fun isTrialAvailable(): Boolean {
+        // Check if user has never had a trial
+        return !_premiumState.value.isTrialActive && _premiumState.value.trialEndDate == null
+    }
+
+    override suspend fun startTrial(): BillingResult<Unit> {
+        return if (isTrialAvailable()) {
+            val trialEndDate = System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000) // 7 days
+            val trialState = PremiumState(
+                isPro = true,
+                subscriptionType = SubscriptionType.NONE,
+                isTrialActive = true,
+                trialEndDate = trialEndDate
+            )
+            updatePremiumState(trialState)
+            BillingResult.Success(Unit)
+        } else {
+            BillingResult.Error(-1, "Trial not available")
+        }
+    }
+
+    private fun loadProducts() {
+        val client = billingClient ?: return
+        
+        val subscriptionParams = QueryProductDetailsParams.Product.newBuilder()
+            .setProductId(SubscriptionType.MONTHLY.productId)
+            .setProductType(BillingClient.ProductType.SUBS)
+            .build()
+            
+        val yearlyParams = QueryProductDetailsParams.Product.newBuilder()
+            .setProductId(SubscriptionType.YEARLY.productId)
+            .setProductType(BillingClient.ProductType.SUBS)
+            .build()
+            
+        val lifetimeParams = QueryProductDetailsParams.Product.newBuilder()
+            .setProductId(SubscriptionType.LIFETIME.productId)
+            .setProductType(BillingClient.ProductType.INAPP)
+            .build()
+
+        val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
+            .setProductList(listOf(subscriptionParams, yearlyParams, lifetimeParams))
+            .build()
+
+        client.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, productDetailsList ->
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                val products = productDetailsList.map { googleProductDetails ->
+                    convertFromGoogleProductDetails(googleProductDetails)
+                }
+                _products.value = BillingResult.Success(products)
+            } else {
+                _products.value = BillingResult.Error(
+                    billingResult.responseCode,
+                    billingResult.debugMessage
+                )
+            }
+        }
+    }
+
+    private fun queryExistingPurchases() {
+        // Implementation to query and process existing purchases
+        // This would update the premium state based on existing valid purchases
+    }
+
+    private fun handlePurchasesUpdate(billingResult: BillingResult, purchases: List<Purchase>?) {
+        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
+            purchases.forEach { purchase ->
+                // Process each purchase
+                processPurchase(purchase)
+            }
+        }
+    }
+
+    private fun processPurchase(purchase: Purchase) {
+        // Convert purchase and validate, then update premium state
+        val purchaseInfo = PurchaseInfo(
+            purchaseToken = purchase.purchaseToken,
+            productId = purchase.products.first(),
+            purchaseTime = purchase.purchaseTime,
+            purchaseState = purchase.purchaseState,
+            isAcknowledged = purchase.isAcknowledged,
+            isAutoRenewing = purchase.isAutoRenewing,
+            orderId = purchase.orderId
+        )
+        
+        // Process the purchase based on its state
+        // Update premium state accordingly
+    }
+
+    private fun convertFromGoogleProductDetails(googleProductDetails: com.android.billingclient.api.ProductDetails): ProductDetails {
+        return ProductDetails(
+            productId = googleProductDetails.productId,
+            productType = if (googleProductDetails.productType == BillingClient.ProductType.SUBS) ProductType.SUBS else ProductType.INAPP,
+            title = googleProductDetails.title,
+            description = googleProductDetails.description,
+            price = googleProductDetails.oneTimePurchaseOfferDetails?.formattedPrice 
+                ?: googleProductDetails.subscriptionOfferDetails?.firstOrNull()?.pricingPhases?.pricingPhaseList?.firstOrNull()?.formattedPrice
+                ?: "",
+            priceAmount = googleProductDetails.oneTimePurchaseOfferDetails?.priceAmountMicros ?: 0L,
+            currencyCode = googleProductDetails.oneTimePurchaseOfferDetails?.priceCurrencyCode ?: "",
+            subscriptionOfferDetails = googleProductDetails.subscriptionOfferDetails?.map { offer ->
+                SubscriptionOfferDetail(
+                    offerId = offer.offerId,
+                    basePlanId = offer.basePlanId,
+                    offerTags = offer.offerTags,
+                    pricingPhases = offer.pricingPhases.pricingPhaseList.map { phase ->
+                        PricingPhase(
+                            price = phase.formattedPrice,
+                            priceAmount = phase.priceAmountMicros,
+                            currencyCode = phase.priceCurrencyCode,
+                            billingPeriod = phase.billingPeriod,
+                            billingCycleCount = phase.billingCycleCount,
+                            recurrenceMode = phase.recurrenceMode
+                        )
+                    }
+                )
+            }
+        )
+    }
+
+    private fun convertToGoogleProductDetails(productDetails: ProductDetails): com.android.billingclient.api.ProductDetails {
+        // This is a placeholder - in practice you'd store the original Google ProductDetails
+        // and use that instead of trying to convert back
+        throw NotImplementedError("This method should use cached Google ProductDetails")
+    }
+}
+
+// Extension function for cleaner async calls
+private suspend fun BillingClient.queryPurchasesAsync(skuType: String): PurchasesResult {
+    return suspendCancellableCoroutine { continuation ->
+        queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder().setProductType(skuType).build()
+        ) { billingResult, purchases ->
+            continuation.resume(PurchasesResult(billingResult, purchases))
+        }
+    }
+}
+
+private data class PurchasesResult(
+    val billingResult: BillingResult,
+    val purchasesList: List<Purchase>
+)

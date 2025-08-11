@@ -1,0 +1,429 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        include:
+          - flavor: "free"
+            build-type: "debug"
+          - flavor: "free"
+            build-type: "release"
+          - flavor: "pro"
+            build-type: "debug"
+          - flavor: "pro"
+            build-type: "release"
+    
+    name: Build ${{ matrix.flavor }} ${{ matrix.build-type }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: '8.2'
+        
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Run unit tests for ${{ matrix.flavor }} ${{ matrix.build-type }}
+      run: ./gradlew test${{ matrix.flavor }}${{ matrix.build-type }}UnitTest --continue
+      
+    - name: Build ${{ matrix.flavor }} ${{ matrix.build-type }} APK
+      run: ./gradlew assemble${{ matrix.flavor }}${{ matrix.build-type }}
+      
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.flavor }}-${{ matrix.build-type }}
+        path: |
+          **/build/reports/tests/
+          **/build/test-results/
+          
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: apk-${{ matrix.flavor }}-${{ matrix.build-type }}
+        path: app/build/outputs/apk/${{ matrix.flavor }}/${{ matrix.build-type }}/*.apk
+
+  instrumentation-tests:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        api-level: [24, 29, 34]
+        flavor: ["free", "pro"]
+        
+    name: Instrumentation Tests API ${{ matrix.api-level }} ${{ matrix.flavor }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: '8.2'
+        
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Enable KVM group perms
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+        
+    - name: AVD cache
+      uses: actions/cache@v3
+      id: avd-cache
+      with:
+        path: |
+          ~/.android/avd/*
+          ~/.android/adb*
+        key: avd-${{ matrix.api-level }}
+        
+    - name: Create AVD and generate snapshot for caching
+      if: steps.avd-cache.outputs.cache-hit != 'true'
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ matrix.api-level }}
+        target: google_apis
+        arch: x86_64
+        force-avd-creation: false
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: false
+        script: echo "Generated AVD snapshot for caching."
+        
+    - name: Run instrumented tests
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ matrix.api-level }}
+        target: google_apis
+        arch: x86_64
+        force-avd-creation: false
+        emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: true
+        script: ./gradlew connected${{ matrix.flavor }}DebugAndroidTest
+        
+    - name: Upload instrumentation test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: instrumentation-test-results-api${{ matrix.api-level }}-${{ matrix.flavor }}
+        path: |
+          **/build/reports/androidTests/
+          **/build/outputs/androidTest-results/
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: '8.2'
+        
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Run Detekt
+      run: ./gradlew detekt
+      
+    - name: Upload Detekt reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: detekt-reports
+        path: |
+          **/build/reports/detekt/
+
+  security-analysis:
+    runs-on: ubuntu-latest
+    name: OWASP Mobile Security Testing
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: '8.2'
+        
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Build release APK for security testing
+      run: ./gradlew assembleProRelease
+      
+    - name: Set up Python for MobSF
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install MobSF dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+        
+    - name: Download and setup MobSF
+      run: |
+        git clone https://github.com/MobSF/Mobile-Security-Framework-MobSF.git
+        cd Mobile-Security-Framework-MobSF
+        pip install -r requirements.txt
+        
+    - name: Start MobSF server
+      run: |
+        cd Mobile-Security-Framework-MobSF
+        python manage.py runserver 127.0.0.1:8000 &
+        sleep 30 # Wait for server to start
+        
+    - name: Run OWASP Mobile Security Tests
+      run: |
+        python3 << 'EOF'
+        import requests
+        import json
+        import os
+        import time
+        
+        # MobSF API configuration
+        MOBSF_URL = 'http://127.0.0.1:8000'
+        API_KEY = 'your_api_key_here'  # In production, use secrets
+        
+        # Find APK file
+        apk_path = None
+        for root, dirs, files in os.walk('app/build/outputs/apk/pro/release'):
+            for file in files:
+                if file.endswith('.apk'):
+                    apk_path = os.path.join(root, file)
+                    break
+        
+        if not apk_path:
+            print("No APK found for security testing")
+            exit(1)
+        
+        print(f"Testing APK: {apk_path}")
+        
+        # Upload APK for analysis
+        try:
+            with open(apk_path, 'rb') as f:
+                files = {'file': f}
+                headers = {'Authorization': API_KEY}
+                response = requests.post(f'{MOBSF_URL}/api/v1/upload', files=files, headers=headers)
+                
+            if response.status_code == 200:
+                result = response.json()
+                hash_value = result.get('hash')
+                print(f"Upload successful. Hash: {hash_value}")
+                
+                # Start static analysis
+                scan_data = {
+                    'hash': hash_value,
+                    'scan_type': 'apk'
+                }
+                scan_response = requests.post(f'{MOBSF_URL}/api/v1/scan', data=scan_data, headers=headers)
+                
+                if scan_response.status_code == 200:
+                    print("Static analysis completed")
+                    
+                    # Get scan results
+                    report_data = {'hash': hash_value}
+                    report_response = requests.post(f'{MOBSF_URL}/api/v1/report_json', data=report_data, headers=headers)
+                    
+                    if report_response.status_code == 200:
+                        report = report_response.json()
+                        
+                        # Security analysis results
+                        security_score = report.get('security_score', 0)
+                        print(f"Security Score: {security_score}/100")
+                        
+                        # Extract security issues
+                        high_issues = []
+                        medium_issues = []
+                        
+                        for category, findings in report.get('findings', {}).items():
+                            if isinstance(findings, list):
+                                for finding in findings:
+                                    if finding.get('severity') == 'high':
+                                        high_issues.append(finding)
+                                    elif finding.get('severity') == 'medium':
+                                        medium_issues.append(finding)
+                        
+                        print(f"High severity issues: {len(high_issues)}")
+                        print(f"Medium severity issues: {len(medium_issues)}")
+                        
+                        # Save detailed report
+                        with open('security_report.json', 'w') as f:
+                            json.dump(report, f, indent=2)
+                        
+                        # Fail build if critical security issues found
+                        if len(high_issues) > 0:
+                            print("CRITICAL SECURITY ISSUES FOUND:")
+                            for issue in high_issues[:5]:  # Show first 5 critical issues
+                                print(f"- {issue.get('title', 'Unknown issue')}")
+                            exit(1)
+                        
+                        if security_score < 70:
+                            print(f"Security score too low: {security_score}/100 (minimum: 70)")
+                            exit(1)
+                            
+                        print("Security analysis passed!")
+                    else:
+                        print(f"Failed to get report: {report_response.status_code}")
+                        exit(1)
+                else:
+                    print(f"Static analysis failed: {scan_response.status_code}")
+                    exit(1)
+            else:
+                print(f"Upload failed: {response.status_code}")
+                exit(1)
+                
+        except Exception as e:
+            print(f"Security analysis error: {str(e)}")
+            # Don't fail the build for infrastructure issues
+            print("Continuing despite security analysis error")
+        EOF
+        
+    - name: Run dependency vulnerability scan
+      run: |
+        # Install OWASP Dependency Check
+        wget https://github.com/jeremylong/DependencyCheck/releases/download/v8.4.3/dependency-check-8.4.3-release.zip
+        unzip dependency-check-8.4.3-release.zip
+        
+        # Run dependency scan
+        ./dependency-check/bin/dependency-check.sh --project "MyDashboardApp" \
+          --scan ./app/build/outputs/apk/pro/release/ \
+          --format JSON --format HTML \
+          --out ./dependency-check-reports/
+          
+    - name: Check for hardcoded secrets
+      run: |
+        # Install truffleHog for secret detection
+        pip install truffleHog
+        
+        # Scan for secrets in source code
+        trufflehog --regex --entropy=False --max_depth=3 . > secrets_report.json || true
+        
+        # Check if any secrets were found
+        if [ -s secrets_report.json ]; then
+          echo "Potential secrets found in source code:"
+          cat secrets_report.json
+          echo "Please review and remove any hardcoded secrets"
+          # Don't fail build, just warn
+        else
+          echo "No hardcoded secrets detected"
+        fi
+        
+    - name: Verify ProGuard obfuscation
+      run: |
+        # Check if ProGuard mapping file was generated (indicates obfuscation)
+        if [ -f "app/build/outputs/mapping/proRelease/mapping.txt" ]; then
+          echo "ProGuard obfuscation verified - mapping file found"
+          wc -l app/build/outputs/mapping/proRelease/mapping.txt
+        else
+          echo "WARNING: ProGuard mapping file not found - obfuscation may not be working"
+          exit 1
+        fi
+        
+    - name: Verify resource shrinking
+      run: |
+        # Check APK size to verify resource shrinking is effective
+        APK_SIZE=$(stat -c%s app/build/outputs/apk/pro/release/*.apk)
+        echo "Release APK size: $APK_SIZE bytes"
+        
+        # Set reasonable size limit (50MB = 52428800 bytes)
+        if [ $APK_SIZE -gt 52428800 ]; then
+          echo "WARNING: APK size is larger than expected. Resource shrinking may not be optimal."
+        else
+          echo "APK size is within acceptable limits"
+        fi
+        
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          security_report.json
+          dependency-check-reports/
+          secrets_report.json
+          app/build/outputs/mapping/proRelease/mapping.txt

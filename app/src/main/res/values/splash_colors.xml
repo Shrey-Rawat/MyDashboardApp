@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash Screen Colors -->
+    <color name="splash_background">#0A1F35</color>
+    <color name="neon_cyan">#00E6CC</color>
+    <color name="neon_cyan_light">#66F0E0</color>
+    <color name="neon_cyan_dim">#2A4A6C</color>
+    <color name="dark_blue_primary">#0F2A4A</color>
+    <color name="dark_blue_secondary">#1A3A5C</color>
+    <color name="dark_blue_accent">#2A4A6C</color>
+</resources>

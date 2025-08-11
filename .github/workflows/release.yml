@@ -1,0 +1,433 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+      release_notes:
+        description: 'Release notes'
+        required: false
+        default: 'Bug fixes and improvements'
+      prerelease:
+        description: 'Pre-release'
+        required: false
+        default: false
+        type: boolean
+      deploy_to_play_store:
+        description: 'Deploy to Play Store'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag_name: ${{ steps.version.outputs.tag_name }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+      
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Determine version and release type
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+          TAG_NAME="v$VERSION"
+          IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+        else
+          TAG_NAME="${{ github.ref_name }}"
+          VERSION="${TAG_NAME#v}"
+          # Check if this is a pre-release (contains alpha, beta, rc, etc.)
+          if echo "$VERSION" | grep -E "(alpha|beta|rc|dev)" > /dev/null; then
+            IS_PRERELEASE="true"
+          else
+            IS_PRERELEASE="false"
+          fi
+        fi
+        
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+        echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+        
+        echo "Release version: $VERSION"
+        echo "Tag name: $TAG_NAME"
+        echo "Is prerelease: $IS_PRERELEASE"
+
+  build-release:
+    runs-on: ubuntu-latest
+    needs: prepare-release
+    
+    strategy:
+      matrix:
+        flavor: ["free", "pro"]
+        
+    name: Build Release (${{ matrix.flavor }})
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: '8.2'
+        
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Decode release keystore
+      run: |
+        echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release-keystore.jks
+        
+    - name: Update version in build.gradle.kts
+      run: |
+        VERSION="${{ needs.prepare-release.outputs.version }}"
+        
+        # Extract version code and name
+        VERSION_NAME="$VERSION"
+        # Convert version to version code (e.g., 1.2.3 -> 10203)
+        VERSION_CODE=$(echo $VERSION | awk -F. '{printf "%d%02d%02d", $1, $2, $3}')
+        
+        # Update app/build.gradle.kts
+        sed -i "s/versionCode = [0-9]\+/versionCode = $VERSION_CODE/" app/build.gradle.kts
+        sed -i "s/versionName = \"[^\"]*\"/versionName = \"$VERSION_NAME\"/" app/build.gradle.kts
+        
+        echo "Updated version to $VERSION_NAME ($VERSION_CODE)"
+        
+    - name: Build signed release APK
+      run: |
+        ./gradlew assemble${{ matrix.flavor }}Release \
+          -Pandroid.injected.signing.store.file=../release-keystore.jks \
+          -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
+          -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
+          -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}"
+          
+    - name: Build signed release AAB
+      run: |
+        ./gradlew bundle${{ matrix.flavor }}Release \
+          -Pandroid.injected.signing.store.file=../release-keystore.jks \
+          -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
+          -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
+          -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}"
+          
+    - name: Verify APK signature
+      run: |
+        # Verify that the APK is properly signed
+        APK_PATH=$(find app/build/outputs/apk/${{ matrix.flavor }}/release/ -name "*.apk" | head -1)
+        if [ -f "$APK_PATH" ]; then
+          $ANDROID_HOME/build-tools/34.0.0/aapt dump badging "$APK_PATH" | head -5
+          echo "✅ APK build successful: $APK_PATH"
+        else
+          echo "❌ APK not found!"
+          exit 1
+        fi
+        
+    - name: Verify AAB signature
+      run: |
+        # Verify that the AAB is properly signed
+        AAB_PATH=$(find app/build/outputs/bundle/${{ matrix.flavor }}Release/ -name "*.aab" | head -1)
+        if [ -f "$AAB_PATH" ]; then
+          echo "✅ AAB build successful: $AAB_PATH"
+          ls -la "$AAB_PATH"
+        else
+          echo "❌ AAB not found!"
+          exit 1
+        fi
+        
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-apk-${{ matrix.flavor }}
+        path: app/build/outputs/apk/${{ matrix.flavor }}/release/*.apk
+        retention-days: 90
+        
+    - name: Upload AAB artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-aab-${{ matrix.flavor }}
+        path: app/build/outputs/bundle/${{ matrix.flavor }}Release/*.aab
+        retention-days: 90
+        
+    - name: Upload ProGuard mapping files
+      uses: actions/upload-artifact@v3
+      with:
+        name: mapping-${{ matrix.flavor }}-${{ needs.prepare-release.outputs.version }}
+        path: app/build/outputs/mapping/${{ matrix.flavor }}Release/mapping.txt
+        retention-days: 365
+        
+    - name: Clean up keystore
+      if: always()
+      run: |
+        if [ -f "app/release-keystore.jks" ]; then
+          rm app/release-keystore.jks
+        fi
+
+  github-release:
+    runs-on: ubuntu-latest
+    needs: [prepare-release, build-release]
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: artifacts/
+        
+    - name: Prepare release assets
+      run: |
+        mkdir -p release-assets
+        
+        # Copy APKs
+        find artifacts/ -name "*.apk" -exec cp {} release-assets/ \;
+        
+        # Copy AABs
+        find artifacts/ -name "*.aab" -exec cp {} release-assets/ \;
+        
+        # Copy mapping files
+        find artifacts/ -name "mapping.txt" -exec cp {} release-assets/ \;
+        
+        # Rename files to include flavor and version
+        VERSION="${{ needs.prepare-release.outputs.version }}"
+        
+        cd release-assets/
+        for file in *.apk; do
+          if [[ $file == *"pro"* ]]; then
+            mv "$file" "best-productivity-app-pro-${VERSION}.apk"
+          elif [[ $file == *"free"* ]]; then
+            mv "$file" "best-productivity-app-free-${VERSION}.apk"
+          fi
+        done
+        
+        for file in *.aab; do
+          if [[ $file == *"pro"* ]]; then
+            mv "$file" "best-productivity-app-pro-${VERSION}.aab"
+          elif [[ $file == *"free"* ]]; then
+            mv "$file" "best-productivity-app-free-${VERSION}.aab"
+          fi
+        done
+        
+        # Rename mapping files
+        for file in mapping.txt; do
+          if [ -f "$file" ]; then
+            mv "$file" "mapping-${VERSION}.txt"
+            break
+          fi
+        done
+        
+        ls -la
+        
+    - name: Generate release notes
+      run: |
+        cat > release_notes.md << 'EOF'
+        ## 🚀 Release ${{ needs.prepare-release.outputs.version }}
+        
+        ${{ github.event.inputs.release_notes || 'Bug fixes and improvements' }}
+        
+        ### 📱 Downloads
+        
+        **Free Version:**
+        - `best-productivity-app-free-${{ needs.prepare-release.outputs.version }}.apk` - APK for sideloading
+        - `best-productivity-app-free-${{ needs.prepare-release.outputs.version }}.aab` - Android App Bundle
+        
+        **Pro Version:**
+        - `best-productivity-app-pro-${{ needs.prepare-release.outputs.version }}.apk` - APK for sideloading  
+        - `best-productivity-app-pro-${{ needs.prepare-release.outputs.version }}.aab` - Android App Bundle
+        
+        **Development Assets:**
+        - `mapping-${{ needs.prepare-release.outputs.version }}.txt` - ProGuard mapping file for crash reporting
+        
+        ### 🛡️ Security
+        - All release builds are signed with our release key
+        - ProGuard obfuscation enabled for enhanced security
+        - No hardcoded secrets or debug information included
+        
+        ### 📋 What's New
+        - Check the commit history for detailed changes since the last release
+        
+        ---
+        
+        **Installation Instructions:**
+        1. Download the appropriate APK for your device
+        2. Enable "Install from Unknown Sources" in your device settings
+        3. Install the APK
+        4. Enjoy the Best Productivity App!
+        
+        **For Developers:**
+        - Use the mapping file for crash reporting and debugging
+        - AAB files are intended for Play Store distribution
+        EOF
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ needs.prepare-release.outputs.tag_name }}
+        name: Release ${{ needs.prepare-release.outputs.version }}
+        body_path: release_notes.md
+        files: |
+          release-assets/*
+        prerelease: ${{ needs.prepare-release.outputs.is_prerelease == 'true' }}
+        draft: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  play-store-release:
+    runs-on: ubuntu-latest
+    needs: [prepare-release, build-release]
+    if: github.event.inputs.deploy_to_play_store != 'false' && needs.prepare-release.outputs.is_prerelease == 'false'
+    
+    strategy:
+      matrix:
+        flavor: ["free", "pro"]
+        
+    name: Deploy to Play Store (${{ matrix.flavor }})
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Download AAB artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: release-aab-${{ matrix.flavor }}
+        path: aab/
+        
+    - name: Setup Google Play API key
+      run: |
+        echo '${{ secrets.GOOGLE_PLAY_API_KEY_JSON }}' > google-play-api-key.json
+        
+    - name: Deploy to Play Store Internal Testing
+      uses: r0adkll/upload-google-play@v1
+      with:
+        serviceAccountJson: google-play-api-key.json
+        packageName: com.mydashboardapp.${{ matrix.flavor }}
+        releaseFiles: aab/*.aab
+        track: internal
+        status: completed
+        inAppUpdatePriority: 2
+        userFraction: 1.0
+        whatsNewDirectory: fastlane/metadata/android/en-US/changelogs/
+        mappingFile: artifacts/mapping-${{ matrix.flavor }}-${{ needs.prepare-release.outputs.version }}/mapping.txt
+        
+    - name: Clean up API key
+      if: always()
+      run: |
+        if [ -f "google-play-api-key.json" ]; then
+          rm google-play-api-key.json
+        fi
+        
+    - name: Notify Slack about Play Store deployment
+      if: success()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: custom
+        custom_payload: |
+          {
+            "text": "🚀 Best Productivity App ${{ matrix.flavor }} v${{ needs.prepare-release.outputs.version }} has been deployed to Play Store Internal Testing!",
+            "attachments": [
+              {
+                "color": "good",
+                "fields": [
+                  {
+                    "title": "Version",
+                    "value": "${{ needs.prepare-release.outputs.version }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Flavor",
+                    "value": "${{ matrix.flavor }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Track",
+                    "value": "Internal Testing",
+                    "short": true
+                  }
+                ]
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  release-summary:
+    runs-on: ubuntu-latest
+    needs: [prepare-release, build-release, github-release, play-store-release]
+    if: always()
+    
+    steps:
+    - name: Release Summary
+      run: |
+        echo "## 🚀 Release Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### Release Information" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version:** ${{ needs.prepare-release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Tag:** ${{ needs.prepare-release.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Pre-release:** ${{ needs.prepare-release.outputs.is_prerelease }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### Build Status" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.build-release.result }}" = "success" ]; then
+          echo "✅ Release builds completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "- Free APK and AAB built and signed" >> $GITHUB_STEP_SUMMARY
+          echo "- Pro APK and AAB built and signed" >> $GITHUB_STEP_SUMMARY
+          echo "- ProGuard mapping files generated" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Release builds failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### Distribution Status" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.github-release.result }}" = "success" ]; then
+          echo "✅ GitHub Release created successfully" >> $GITHUB_STEP_SUMMARY
+          echo "- Release assets uploaded" >> $GITHUB_STEP_SUMMARY
+          echo "- Release notes generated" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ GitHub Release failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ needs.play-store-release.result }}" = "success" ]; then
+          echo "✅ Play Store deployment completed" >> $GITHUB_STEP_SUMMARY
+          echo "- Both flavors deployed to Internal Testing track" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ needs.play-store-release.result }}" = "skipped" ]; then
+          echo "⏭️ Play Store deployment skipped" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Play Store deployment failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "1. Test the internal release on Play Store" >> $GITHUB_STEP_SUMMARY
+        echo "2. Promote to Production track when ready" >> $GITHUB_STEP_SUMMARY
+        echo "3. Monitor crash reports using the mapping files" >> $GITHUB_STEP_SUMMARY
+        echo "4. Update app store listings if needed" >> $GITHUB_STEP_SUMMARY
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Release completed at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY

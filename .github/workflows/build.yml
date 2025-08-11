@@ -1,0 +1,145 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, develop, 'feature/**' ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        include:
+          - flavor: "free"
+            build-type: "debug"
+          - flavor: "free"
+            build-type: "release"
+          - flavor: "pro"
+            build-type: "debug"
+          - flavor: "pro"
+            build-type: "release"
+    
+    name: Build ${{ matrix.flavor }} ${{ matrix.build-type }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: '8.2'
+        
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Decode keystore for release builds
+      if: matrix.build-type == 'release'
+      run: |
+        if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release-keystore.jks
+          echo "KEYSTORE_PATH=../release-keystore.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+        else
+          echo "Warning: No keystore secrets found, using debug signing for release build"
+        fi
+          
+    - name: Build ${{ matrix.flavor }} ${{ matrix.build-type }} APK
+      run: |
+        if [ "${{ matrix.build-type }}" = "release" ]; then
+          ./gradlew assemble${{ matrix.flavor }}${{ matrix.build-type }} \
+            -Pandroid.injected.signing.store.file="$KEYSTORE_PATH" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD" || \
+          ./gradlew assemble${{ matrix.flavor }}${{ matrix.build-type }}
+        else
+          ./gradlew assemble${{ matrix.flavor }}${{ matrix.build-type }}
+        fi
+        
+    - name: Build ${{ matrix.flavor }} ${{ matrix.build-type }} AAB
+      if: matrix.build-type == 'release'
+      run: |
+        if [ "${{ matrix.build-type }}" = "release" ]; then
+          ./gradlew bundle${{ matrix.flavor }}${{ matrix.build-type }} \
+            -Pandroid.injected.signing.store.file="$KEYSTORE_PATH" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD" || \
+          ./gradlew bundle${{ matrix.flavor }}${{ matrix.build-type }}
+        fi
+      
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: apk-${{ matrix.flavor }}-${{ matrix.build-type }}
+        path: app/build/outputs/apk/${{ matrix.flavor }}/${{ matrix.build-type }}/*.apk
+        retention-days: 30
+        
+    - name: Upload AAB artifact
+      if: matrix.build-type == 'release'
+      uses: actions/upload-artifact@v3
+      with:
+        name: aab-${{ matrix.flavor }}-${{ matrix.build-type }}
+        path: app/build/outputs/bundle/${{ matrix.flavor }}${{ matrix.build-type }}/*.aab
+        retention-days: 30
+        
+    - name: Upload ProGuard mapping files
+      if: matrix.build-type == 'release'
+      uses: actions/upload-artifact@v3
+      with:
+        name: mapping-${{ matrix.flavor }}-${{ matrix.build-type }}
+        path: app/build/outputs/mapping/${{ matrix.flavor }}${{ matrix.build-type }}/mapping.txt
+        retention-days: 90
+        
+    - name: Clean up keystore
+      if: matrix.build-type == 'release' && always()
+      run: |
+        if [ -f "app/release-keystore.jks" ]; then
+          rm app/release-keystore.jks
+        fi
+
+  build-summary:
+    runs-on: ubuntu-latest
+    needs: build
+    if: always()
+    
+    steps:
+    - name: Build Summary
+      run: |
+        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "| Flavor | Build Type | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|------------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        # This would need to be populated based on the matrix results
+        # For now, we'll indicate that the build step controls the status
+        if [ "${{ needs.build.result }}" = "success" ]; then
+          echo "| free | debug | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+          echo "| free | release | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+          echo "| pro | debug | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+          echo "| pro | release | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Build | Matrix | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+        fi

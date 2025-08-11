@@ -1,0 +1,102 @@
+{
+  "locations": [
+    {
+      "name": "Home",
+      "description": "Main residence",
+      "type": "Building",
+      "parentLocationId": null,
+      "color": "#4CAF50",
+      "icon": "home"
+    },
+    {
+      "name": "Kitchen",
+      "description": "Food preparation and storage area",
+      "type": "Room",
+      "parentLocationId": 1,
+      "color": "#FF9800",
+      "icon": "kitchen"
+    },
+    {
+      "name": "Pantry",
+      "description": "Food storage area",
+      "type": "Room",
+      "parentLocationId": 2,
+      "color": "#795548",
+      "icon": "storage"
+    },
+    {
+      "name": "Refrigerator",
+      "description": "Cold food storage",
+      "type": "Appliance",
+      "parentLocationId": 2,
+      "color": "#2196F3",
+      "icon": "fridge"
+    },
+    {
+      "name": "Bedroom",
+      "description": "Master bedroom",
+      "type": "Room",
+      "parentLocationId": 1,
+      "color": "#9C27B0",
+      "icon": "bed"
+    },
+    {
+      "name": "Closet",
+      "description": "Clothing storage",
+      "type": "Storage",
+      "parentLocationId": 5,
+      "color": "#607D8B",
+      "icon": "closet"
+    },
+    {
+      "name": "Living Room",
+      "description": "Main gathering area",
+      "type": "Room",
+      "parentLocationId": 1,
+      "color": "#8BC34A",
+      "icon": "sofa"
+    },
+    {
+      "name": "Office",
+      "description": "Home office workspace",
+      "type": "Room",
+      "parentLocationId": 1,
+      "color": "#FF5722",
+      "icon": "desk"
+    },
+    {
+      "name": "Garage",
+      "description": "Vehicle and tool storage",
+      "type": "Room",
+      "parentLocationId": 1,
+      "color": "#9E9E9E",
+      "icon": "garage"
+    },
+    {
+      "name": "Storage Unit",
+      "description": "External storage facility",
+      "type": "Building",
+      "parentLocationId": null,
+      "address": "123 Storage Lane, City, State 12345",
+      "color": "#FFEB3B",
+      "icon": "storage_unit"
+    },
+    {
+      "name": "Office Building",
+      "description": "Workplace",
+      "type": "Building",
+      "parentLocationId": null,
+      "address": "456 Work Street, City, State 12345",
+      "color": "#3F51B5",
+      "icon": "business"
+    },
+    {
+      "name": "Desk Area",
+      "description": "Personal workspace at office",
+      "type": "Workspace",
+      "parentLocationId": 11,
+      "color": "#E91E63",
+      "icon": "computer_desk"
+    }
+  ]
+}

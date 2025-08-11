@@ -1,0 +1,185 @@
+syntax = "proto3";
+
+package com.mydashboardapp.sync;
+
+import "google/protobuf/timestamp.proto";
+
+option java_package = "com.mydashboardapp.sync.proto";
+option java_outer_classname = "SyncProto";
+option java_multiple_files = true;
+
+// Main sync service definition
+service SyncService {
+  // Push local changes to server
+  rpc PushChanges(PushChangesRequest) returns (PushChangesResponse);
+  
+  // Pull updates from server
+  rpc PullUpdates(PullUpdatesRequest) returns (PullUpdatesResponse);
+  
+  // Full bidirectional sync
+  rpc BidirectionalSync(BidirectionalSyncRequest) returns (BidirectionalSyncResponse);
+  
+  // Get sync status
+  rpc GetSyncStatus(GetSyncStatusRequest) returns (GetSyncStatusResponse);
+}
+
+// Request to push local changes
+message PushChangesRequest {
+  string user_id = 1;
+  string device_id = 2;
+  repeated PendingChangeProto changes = 3;
+  google.protobuf.Timestamp last_sync_timestamp = 4;
+}
+
+// Response from push changes
+message PushChangesResponse {
+  repeated PendingChangeProto successful = 1;
+  repeated PendingChangeProto failed = 2;
+  repeated SyncConflictProto conflicts = 3;
+  google.protobuf.Timestamp new_sync_timestamp = 4;
+  SyncStatus status = 5;
+}
+
+// Request to pull updates
+message PullUpdatesRequest {
+  string user_id = 1;
+  string device_id = 2;
+  google.protobuf.Timestamp last_sync_timestamp = 3;
+  repeated EntityType entity_types = 4; // Optional filter
+}
+
+// Response from pull updates
+message PullUpdatesResponse {
+  repeated EntityUpdateProto updates = 1;
+  repeated SyncConflictProto conflicts = 2;
+  google.protobuf.Timestamp new_sync_timestamp = 3;
+  SyncStatus status = 4;
+}
+
+// Bidirectional sync request
+message BidirectionalSyncRequest {
+  string user_id = 1;
+  string device_id = 2;
+  google.protobuf.Timestamp last_sync_timestamp = 3;
+  repeated PendingChangeProto local_changes = 4;
+  repeated EntityType entity_types = 5; // Optional filter
+}
+
+// Bidirectional sync response
+message BidirectionalSyncResponse {
+  repeated PendingChangeProto successful_pushes = 1;
+  repeated PendingChangeProto failed_pushes = 2;
+  repeated EntityUpdateProto updates = 3;
+  repeated SyncConflictProto conflicts = 4;
+  google.protobuf.Timestamp new_sync_timestamp = 5;
+  SyncStatus status = 6;
+}
+
+// Sync status request
+message GetSyncStatusRequest {
+  string user_id = 1;
+  string device_id = 2;
+}
+
+// Sync status response
+message GetSyncStatusResponse {
+  google.protobuf.Timestamp last_sync_timestamp = 1;
+  int32 pending_changes_count = 2;
+  bool is_syncing = 3;
+  SyncStatus status = 4;
+  repeated ConflictSummaryProto unresolved_conflicts = 5;
+}
+
+// Represents a pending change to be synchronized
+message PendingChangeProto {
+  string entity_id = 1;
+  EntityType entity_type = 2;
+  ChangeOperation operation = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  bytes entity_data = 5; // Serialized entity
+  string local_id = 6;
+  string remote_id = 7;
+  map<string, string> metadata = 8;
+}
+
+// Represents an entity update from server
+message EntityUpdateProto {
+  string entity_id = 1;
+  EntityType entity_type = 2;
+  ChangeOperation operation = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  bytes entity_data = 5; // Serialized entity
+  int64 version = 6;
+  map<string, string> metadata = 7;
+}
+
+// Represents a synchronization conflict
+message SyncConflictProto {
+  string entity_id = 1;
+  EntityType entity_type = 2;
+  ConflictType conflict_type = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  bytes local_entity_data = 5; // May be empty for deleted entities
+  bytes remote_entity_data = 6; // May be empty for deleted entities
+  int64 local_version = 7;
+  int64 remote_version = 8;
+  ConflictResolution resolution = 9; // How to resolve this conflict
+}
+
+// Summary of conflicts for status reporting
+message ConflictSummaryProto {
+  EntityType entity_type = 1;
+  ConflictType conflict_type = 2;
+  int32 count = 3;
+}
+
+// Types of entities that can be synchronized
+enum EntityType {
+  ENTITY_TYPE_UNSPECIFIED = 0;
+  ENTITY_TYPE_FOOD = 1;
+  ENTITY_TYPE_INGREDIENT = 2;
+  ENTITY_TYPE_MEAL = 3;
+  ENTITY_TYPE_WORKOUT = 4;
+  ENTITY_TYPE_EXERCISE = 5;
+  ENTITY_TYPE_TRAINING_PLAN = 6;
+  ENTITY_TYPE_USER_PROFILE = 7;
+  ENTITY_TYPE_NUTRITION_GOAL = 8;
+  ENTITY_TYPE_FITNESS_GOAL = 9;
+}
+
+// Types of changes that can be synchronized
+enum ChangeOperation {
+  CHANGE_OPERATION_UNSPECIFIED = 0;
+  CHANGE_OPERATION_CREATE = 1;
+  CHANGE_OPERATION_UPDATE = 2;
+  CHANGE_OPERATION_DELETE = 3;
+}
+
+// Types of synchronization conflicts
+enum ConflictType {
+  CONFLICT_TYPE_UNSPECIFIED = 0;
+  CONFLICT_TYPE_BOTH_MODIFIED = 1;
+  CONFLICT_TYPE_LOCAL_DELETED_REMOTE_MODIFIED = 2;
+  CONFLICT_TYPE_LOCAL_MODIFIED_REMOTE_DELETED = 3;
+  CONFLICT_TYPE_DUPLICATE_CREATION = 4;
+}
+
+// Conflict resolution strategies
+enum ConflictResolution {
+  CONFLICT_RESOLUTION_UNSPECIFIED = 0;
+  CONFLICT_RESOLUTION_USE_LOCAL = 1;
+  CONFLICT_RESOLUTION_USE_REMOTE = 2;
+  CONFLICT_RESOLUTION_MERGE = 3;
+  CONFLICT_RESOLUTION_MANUAL = 4; // Requires user intervention
+}
+
+// Sync operation status
+enum SyncStatus {
+  SYNC_STATUS_UNSPECIFIED = 0;
+  SYNC_STATUS_SUCCESS = 1;
+  SYNC_STATUS_PARTIAL_SUCCESS = 2;
+  SYNC_STATUS_FAILED = 3;
+  SYNC_STATUS_CONFLICT = 4;
+  SYNC_STATUS_UNAUTHORIZED = 5;
+  SYNC_STATUS_NETWORK_ERROR = 6;
+}

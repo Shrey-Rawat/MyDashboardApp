@@ -1,0 +1,124 @@
+{
+  "exercises": [
+    {
+      "name": "Push-ups",
+      "category": "Strength",
+      "muscleGroup": "Chest",
+      "equipment": "Bodyweight",
+      "description": "A classic bodyweight exercise targeting the chest, shoulders, and triceps",
+      "instructions": "Start in plank position, lower body until chest nearly touches floor, push back up",
+      "difficulty": "Beginner",
+      "caloriesPerMinute": 7.0
+    },
+    {
+      "name": "Squats",
+      "category": "Strength",
+      "muscleGroup": "Legs",
+      "equipment": "Bodyweight",
+      "description": "A fundamental lower body exercise for quadriceps, glutes, and hamstrings",
+      "instructions": "Stand with feet shoulder-width apart, lower hips back and down, return to standing",
+      "difficulty": "Beginner",
+      "caloriesPerMinute": 8.0
+    },
+    {
+      "name": "Pull-ups",
+      "category": "Strength",
+      "muscleGroup": "Back",
+      "equipment": "Pull-up bar",
+      "description": "Upper body exercise targeting the latissimus dorsi, rhomboids, and biceps",
+      "instructions": "Hang from bar with overhand grip, pull body up until chin clears bar, lower with control",
+      "difficulty": "Intermediate",
+      "caloriesPerMinute": 9.0
+    },
+    {
+      "name": "Planks",
+      "category": "Strength",
+      "muscleGroup": "Core",
+      "equipment": "Bodyweight",
+      "description": "Isometric core exercise for building stability and strength",
+      "instructions": "Hold straight line from head to heels, supported on forearms and toes",
+      "difficulty": "Beginner",
+      "caloriesPerMinute": 4.0
+    },
+    {
+      "name": "Burpees",
+      "category": "Cardio",
+      "muscleGroup": "Full Body",
+      "equipment": "Bodyweight",
+      "description": "High-intensity full-body exercise combining squat, plank, and jump",
+      "instructions": "Squat down, jump back to plank, do push-up, jump feet to hands, jump up with arms overhead",
+      "difficulty": "Advanced",
+      "caloriesPerMinute": 12.0
+    },
+    {
+      "name": "Bench Press",
+      "category": "Strength",
+      "muscleGroup": "Chest",
+      "equipment": "Barbell",
+      "description": "Classic compound exercise for chest, shoulders, and triceps",
+      "instructions": "Lie on bench, lower bar to chest with control, press up to full arm extension",
+      "difficulty": "Intermediate",
+      "caloriesPerMinute": 6.0
+    },
+    {
+      "name": "Deadlifts",
+      "category": "Strength",
+      "muscleGroup": "Full Body",
+      "equipment": "Barbell",
+      "description": "Compound movement targeting hamstrings, glutes, back, and core",
+      "instructions": "Stand with feet hip-width apart, hinge at hips, lift bar keeping back straight",
+      "difficulty": "Advanced",
+      "caloriesPerMinute": 8.5
+    },
+    {
+      "name": "Running",
+      "category": "Cardio",
+      "muscleGroup": "Legs",
+      "equipment": null,
+      "description": "Cardiovascular exercise for endurance and leg strength",
+      "instructions": "Maintain steady pace, land midfoot, keep cadence around 180 steps per minute",
+      "difficulty": "Beginner",
+      "caloriesPerMinute": 10.0
+    },
+    {
+      "name": "Mountain Climbers",
+      "category": "Cardio",
+      "muscleGroup": "Full Body",
+      "equipment": "Bodyweight",
+      "description": "High-intensity exercise combining cardio and core strengthening",
+      "instructions": "Start in plank position, alternate bringing knees to chest rapidly",
+      "difficulty": "Intermediate",
+      "caloriesPerMinute": 10.0
+    },
+    {
+      "name": "Lunges",
+      "category": "Strength",
+      "muscleGroup": "Legs",
+      "equipment": "Bodyweight",
+      "description": "Unilateral exercise targeting quadriceps, glutes, and hamstrings",
+      "instructions": "Step forward, lower back knee toward ground, push back to starting position",
+      "difficulty": "Beginner",
+      "caloriesPerMinute": 7.5
+    },
+    {
+      "name": "Overhead Press",
+      "category": "Strength",
+      "muscleGroup": "Shoulders",
+      "equipment": "Barbell",
+      "description": "Vertical pressing movement for shoulders and triceps",
+      "instructions": "Press bar from shoulder level to overhead, keep core tight throughout",
+      "difficulty": "Intermediate",
+      "caloriesPerMinute": 5.5
+    },
+    {
+      "name": "Rowing (Machine)",
+      "category": "Cardio",
+      "muscleGroup": "Full Body",
+      "equipment": "Rowing Machine",
+      "description": "Low-impact cardio exercise engaging multiple muscle groups",
+      "instructions": "Drive with legs, pull handle to chest, return with control",
+      "difficulty": "Beginner",
+      "caloriesPerMinute": 11.0
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">My Dashboard App</string>
+    
+    <!-- Splash Screen Strings -->
+    <string name="splash_title">MY DASHBOARD</string>
+    <string name="splash_subtitle">PERSONAL PRODUCTIVITY</string>
+    <string name="splash_loading">LOADING</string>
+    <string name="productivity_app_icon">Productivity App Icon</string>
+    <string name="loading_progress">Loading Progress</string>
+</resources>

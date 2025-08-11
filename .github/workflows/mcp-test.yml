@@ -1,0 +1,152 @@
+name: MCP Test Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_message:
+        description: 'Test message to echo'
+        required: false
+        default: 'Hello from MCP Test!'
+      test_environment:
+        description: 'Test environment'
+        required: false
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+jobs:
+  simple-test:
+    runs-on: ubuntu-latest
+    name: Simple MCP Test Job
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Print test information
+      run: |
+        echo "🧪 Running MCP Test Workflow"
+        echo "Test Message: ${{ github.event.inputs.test_message }}"
+        echo "Test Environment: ${{ github.event.inputs.test_environment }}"
+        echo "Triggered by: ${{ github.actor }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Workflow: ${{ github.workflow }}"
+        echo "Run ID: ${{ github.run_id }}"
+        echo "Run Number: ${{ github.run_number }}"
+        
+    - name: System information
+      run: |
+        echo "📊 System Information:"
+        echo "OS: $(uname -a)"
+        echo "Date: $(date)"
+        echo "Disk Usage:"
+        df -h
+        echo "Memory:"
+        free -h
+        
+    - name: Test environment setup
+      run: |
+        echo "🔧 Setting up test environment: ${{ github.event.inputs.test_environment }}"
+        case "${{ github.event.inputs.test_environment }}" in
+          "development")
+            echo "Setting up development environment"
+            echo "DEV_MODE=true" >> $GITHUB_ENV
+            ;;
+          "staging")
+            echo "Setting up staging environment"
+            echo "STAGING_MODE=true" >> $GITHUB_ENV
+            ;;
+          "production")
+            echo "Setting up production environment"
+            echo "PROD_MODE=true" >> $GITHUB_ENV
+            ;;
+        esac
+        
+    - name: Validate workflow
+      run: |
+        echo "✅ MCP Test Workflow completed successfully!"
+        echo "Environment variables set:"
+        env | grep -E "(DEV_MODE|STAGING_MODE|PROD_MODE)" || echo "No environment-specific variables set"
+        
+    - name: Create test artifact
+      run: |
+        mkdir -p test-results
+        cat > test-results/test-report.txt << EOF
+        MCP Test Workflow Report
+        ========================
+        
+        Test Message: ${{ github.event.inputs.test_message }}
+        Test Environment: ${{ github.event.inputs.test_environment }}
+        Triggered by: ${{ github.actor }}
+        Timestamp: $(date)
+        Workflow Run: ${{ github.run_id }}
+        
+        Status: SUCCESS ✅
+        EOF
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: mcp-test-results
+        path: test-results/
+        retention-days: 7
+
+  matrix-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        test_case: [case1, case2, case3]
+        
+    name: Matrix Test (${{ matrix.test_case }})
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Run matrix test case
+      run: |
+        echo "🧪 Running test case: ${{ matrix.test_case }}"
+        case "${{ matrix.test_case }}" in
+          "case1")
+            echo "Running Case 1: Basic functionality test"
+            echo "Test passed ✅"
+            ;;
+          "case2") 
+            echo "Running Case 2: Integration test"
+            echo "Test passed ✅"
+            ;;
+          "case3")
+            echo "Running Case 3: Performance test"
+            echo "Test passed ✅"
+            ;;
+        esac
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [simple-test, matrix-test]
+    if: always()
+    
+    steps:
+    - name: Test Summary
+      run: |
+        echo "## 🧪 MCP Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.simple-test.result }}" = "success" ]; then
+          echo "✅ Simple test passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Simple test failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ needs.matrix-test.result }}" = "success" ]; then
+          echo "✅ Matrix tests passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Matrix tests failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Test completed at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY

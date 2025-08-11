@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Exclude sensitive user data from cloud backup -->
+        <exclude domain="sharedpref" path="device_prefs.xml"/>
+        <exclude domain="database" path="room_database.db"/>
+        <exclude domain="database" path="room_database.db-shm"/>
+        <exclude domain="database" path="room_database.db-wal"/>
+        <exclude domain="external"/>
+    </cloud-backup>
+    
+    <device-transfer>
+        <!-- Allow specific app data to be transferred between devices -->
+        <include domain="file" path="app/"/>
+        <include domain="database"/>
+    </device-transfer>
+</data-extraction-rules>

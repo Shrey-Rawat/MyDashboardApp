@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  android-emulator:
+    build:
+      context: .
+      dockerfile: Dockerfile.android
+    container_name: android_emulator
+    privileged: true
+    ports:
+      - "5901:5901"  # VNC port
+      - "5037:5037"  # ADB port
+    volumes:
+      - ../app/build/outputs/apk:/home/android/apk:ro
+      - android_home:/opt/android-sdk
+    environment:
+      - DISPLAY=:1
+    restart: unless-stopped
+    
+volumes:
+  android_home:

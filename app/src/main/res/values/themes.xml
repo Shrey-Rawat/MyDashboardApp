@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme using Material 3 -->
+    <style name="Theme.MyDashboardApp" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- AppCompat compatible colors -->
+        <item name="colorPrimary">@color/md_theme_primary</item>
+        <item name="colorPrimaryDark">@color/md_theme_primary</item>
+        <item name="colorAccent">@color/md_theme_secondary</item>
+        <item name="android:colorBackground">@color/md_theme_background</item>
+        
+        <!-- System bars -->
+        <item name="android:statusBarColor" tools:targetApi="l">@color/md_theme_surface</item>
+        <item name="android:navigationBarColor" tools:targetApi="l">@color/md_theme_surface</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o">true</item>
+        
+        <!-- Typography removed - these attributes not supported in AppCompat -->
+        <!-- Custom typography can be applied directly to views -->
+        <!-- <item name="textAppearanceDisplayLarge">@style/TextAppearance.BestProductivityApp.DisplayLarge</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.BestProductivityApp.DisplayMedium</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.BestProductivityApp.DisplaySmall</item> -->
+        
+        <!-- Shape system - temporarily removed until Material components are properly configured -->
+        <!-- <item name="shapeAppearanceCornerExtraLarge">@style/ShapeAppearance.BestProductivityApp.CornerExtraLarge</item>
+        <item name="shapeAppearanceCornerLarge">@style/ShapeAppearance.BestProductivityApp.CornerLarge</item>
+        <item name="shapeAppearanceCornerMedium">@style/ShapeAppearance.BestProductivityApp.CornerMedium</item>
+        <item name="shapeAppearanceCornerSmall">@style/ShapeAppearance.BestProductivityApp.CornerSmall</item> -->
+    </style>
+</resources>

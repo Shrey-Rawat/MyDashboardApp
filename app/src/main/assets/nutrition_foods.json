@@ -1,0 +1,124 @@
+{
+  "foods": [
+    {
+      "name": "Banana (Medium)",
+      "brand": null,
+      "servingSize": 118,
+      "caloriesPerServing": 105,
+      "proteinPerServing": 1.3,
+      "carbsPerServing": 27,
+      "fatPerServing": 0.4,
+      "fiberPerServing": 3.1,
+      "sugarPerServing": 14.4,
+      "sodiumPerServing": 1
+    },
+    {
+      "name": "Chicken Breast (Grilled)",
+      "brand": null,
+      "servingSize": 100,
+      "caloriesPerServing": 165,
+      "proteinPerServing": 31,
+      "carbsPerServing": 0,
+      "fatPerServing": 3.6,
+      "fiberPerServing": 0,
+      "sugarPerServing": 0,
+      "sodiumPerServing": 74
+    },
+    {
+      "name": "Brown Rice (Cooked)",
+      "brand": null,
+      "servingSize": 100,
+      "caloriesPerServing": 112,
+      "proteinPerServing": 2.3,
+      "carbsPerServing": 23,
+      "fatPerServing": 0.9,
+      "fiberPerServing": 1.8,
+      "sugarPerServing": 0.4,
+      "sodiumPerServing": 5
+    },
+    {
+      "name": "Greek Yogurt (Plain)",
+      "brand": "Generic",
+      "servingSize": 170,
+      "caloriesPerServing": 100,
+      "proteinPerServing": 17,
+      "carbsPerServing": 6,
+      "fatPerServing": 0.4,
+      "fiberPerServing": 0,
+      "sugarPerServing": 6,
+      "sodiumPerServing": 65
+    },
+    {
+      "name": "Almonds (Raw)",
+      "brand": null,
+      "servingSize": 28,
+      "caloriesPerServing": 164,
+      "proteinPerServing": 6,
+      "carbsPerServing": 6,
+      "fatPerServing": 14,
+      "fiberPerServing": 3.5,
+      "sugarPerServing": 1.2,
+      "sodiumPerServing": 1
+    },
+    {
+      "name": "Broccoli (Steamed)",
+      "brand": null,
+      "servingSize": 100,
+      "caloriesPerServing": 35,
+      "proteinPerServing": 2.8,
+      "carbsPerServing": 7,
+      "fatPerServing": 0.4,
+      "fiberPerServing": 2.6,
+      "sugarPerServing": 1.5,
+      "sodiumPerServing": 33
+    },
+    {
+      "name": "Salmon (Atlantic, Farmed)",
+      "brand": null,
+      "servingSize": 100,
+      "caloriesPerServing": 208,
+      "proteinPerServing": 25,
+      "carbsPerServing": 0,
+      "fatPerServing": 12,
+      "fiberPerServing": 0,
+      "sugarPerServing": 0,
+      "sodiumPerServing": 44
+    },
+    {
+      "name": "Sweet Potato (Baked)",
+      "brand": null,
+      "servingSize": 100,
+      "caloriesPerServing": 90,
+      "proteinPerServing": 2,
+      "carbsPerServing": 21,
+      "fatPerServing": 0.2,
+      "fiberPerServing": 3.3,
+      "sugarPerServing": 6.8,
+      "sodiumPerServing": 6
+    },
+    {
+      "name": "Eggs (Large)",
+      "brand": null,
+      "servingSize": 50,
+      "caloriesPerServing": 70,
+      "proteinPerServing": 6,
+      "carbsPerServing": 0.6,
+      "fatPerServing": 5,
+      "fiberPerServing": 0,
+      "sugarPerServing": 0.6,
+      "sodiumPerServing": 70
+    },
+    {
+      "name": "Oatmeal (Steel Cut, Cooked)",
+      "brand": null,
+      "servingSize": 100,
+      "caloriesPerServing": 42,
+      "proteinPerServing": 1.5,
+      "carbsPerServing": 8.3,
+      "fatPerServing": 0.8,
+      "fiberPerServing": 1.4,
+      "sugarPerServing": 0.3,
+      "sodiumPerServing": 2
+    }
+  ]
+}

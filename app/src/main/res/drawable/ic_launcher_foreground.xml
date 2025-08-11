@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Background circle -->
+    <group android:translateX="54" android:translateY="54">
+        <path
+            android:fillColor="#6750A4"
+            android:pathData="M-30,-30 L30,-30 L30,30 L-30,30 Z" />
+        
+        <!-- Main productivity icon - checkmark and target -->
+        <group>
+            <!-- Target circles -->
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="2"
+                android:strokeAlpha="0.8"
+                android:pathData="M 0,0 m -18,0 a 18,18 0 1,1 36,0 a 18,18 0 1,1 -36,0"
+                android:fillColor="#00000000" />
+            
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="2"
+                android:strokeAlpha="0.6"
+                android:pathData="M 0,0 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0"
+                android:fillColor="#00000000" />
+            
+            <!-- Center checkmark -->
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M-2,-1 L2,3 L8,-3 L10,-1 L2,7 L-4,1 Z" />
+            
+            <!-- Small productivity elements -->
+            <!-- Task list lines -->
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.5"
+                android:strokeAlpha="0.7"
+                android:pathData="M-25,-20 L-15,-20" />
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.5"
+                android:strokeAlpha="0.7"
+                android:pathData="M-25,-15 L-12,-15" />
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.5"
+                android:strokeAlpha="0.7"
+                android:pathData="M-25,-10 L-18,-10" />
+            
+            <!-- Clock indicator -->
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.5"
+                android:strokeAlpha="0.7"
+                android:pathData="M 20,15 m -6,0 a 6,6 0 1,1 12,0 a 6,6 0 1,1 -12,0" />
+            <path
+                android:strokeColor="#FFFFFF"
+                android:strokeWidth="1.5"
+                android:strokeAlpha="0.7"
+                android:pathData="M20,15 L20,11 L23,13" />
+            
+            <!-- Star for achievement -->
+            <path
+                android:fillColor="#FFFFFF"
+                android:fillAlpha="0.8"
+                android:pathData="M15,-18 L16,-15 L19,-15 L17,-13 L18,-10 L15,-12 L12,-10 L13,-13 L11,-15 L14,-15 Z" />
+        </group>
+    </group>
+</vector>

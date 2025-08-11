@@ -1,0 +1,191 @@
+plugins {
+    id("bestproductivityapp.android.application")
+    id("bestproductivityapp.android.hilt")
+    id("org.jetbrains.kotlin.kapt")
+    id("io.sentry.android.gradle")
+}
+
+android {
+    namespace = "com.bestproductivityapp"
+    
+    defaultConfig {
+        applicationId = "com.bestproductivityapp"
+        versionCode = 1
+        versionName = "1.0.0"
+        
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+    
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            all {
+                it.useJUnitPlatform()
+            }
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            // These will be provided via command line during CI/CD
+            storeFile = file(project.findProperty("android.injected.signing.store.file") ?: "debug.keystore")
+            storePassword = project.findProperty("android.injected.signing.store.password") as String? ?: "android"
+            keyAlias = project.findProperty("android.injected.signing.key.alias") as String? ?: "androiddebugkey"
+            keyPassword = project.findProperty("android.injected.signing.key.password") as String? ?: "android"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
+        }
+    }
+
+    buildTypes {
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            isDebuggable = true
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            
+            // Use release signing config if available, otherwise fall back to debug
+            signingConfig = if (project.hasProperty("android.injected.signing.store.file")) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+            
+            // Additional release optimizations
+            isDebuggable = false
+            isJniDebuggable = false
+            isPseudoLocalesEnabled = false
+        }
+    }
+
+    flavorDimensions += listOf("version", "auth")
+    productFlavors {
+        create("free") {
+            dimension = "version"
+            applicationIdSuffix = ".free"
+            versionNameSuffix = "-free"
+            
+            buildConfigField("boolean", "IS_PRO_VERSION", "false")
+            buildConfigField("String", "SENTRY_DSN", "\"https://a72855998b3e174755611c78ee92d6af@o4509820996419584.ingest.de.sentry.io/4509821671047248\"")
+            resValue("string", "app_name", "Best Productivity App Free")
+        }
+        create("pro") {
+            dimension = "version"
+            applicationIdSuffix = ".pro"
+            versionNameSuffix = "-pro"
+            
+            buildConfigField("boolean", "IS_PRO_VERSION", "true")
+            buildConfigField("String", "SENTRY_DSN", "\"https://a72855998b3e174755611c78ee92d6af@o4509820996419584.ingest.de.sentry.io/4509821671047248\"")
+            resValue("string", "app_name", "Best Productivity App Pro")
+        }
+        
+        // Auth implementation flavors - use Firebase by default
+        create("firebase") {
+            dimension = "auth"
+            isDefault = true
+        }
+        create("stub") {
+            dimension = "auth"
+        }
+    }
+}
+
+sentry {
+    // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
+    // This enables source context, allowing you to see your source
+    // code as part of your stack traces in Sentry.
+    includeSourceContext = true
+
+    org = "shray"
+    projectName = "bestproductivityapp"
+    authToken = System.getenv("SENTRY_AUTH_TOKEN")
+
+    // Disable or enable the handling of Proguard mapping for Sentry.
+    // If enabled the plugin will generate a UUID and will upload the mapping to Sentry.
+    includeProguardMapping = true
+    autoUploadProguardMapping = true
+
+    // Configure auto-upload of release to Sentry
+    autoUploadSourceContext = true
+
+    // Enable or disable the automatic creation of releases on Sentry
+    autoInstallation {
+        enabled = true
+        
+        // Configure the variant filtering
+        includeVariant { variant ->
+            // Only upload on release builds
+            variant.buildType.name == "release"
+        }
+    }
+}
+
+dependencies {
+    implementation(project(":core"))
+    implementation(project(":auth"))
+    implementation(project(":billing"))
+    implementation(project(":feature-nutrition"))
+    implementation(project(":feature-training"))
+    implementation(project(":feature-productivity"))
+    implementation(project(":feature-finance"))
+    implementation(project(":feature-inventory"))
+    implementation(project(":feature-ai"))
+    
+    // Core Android libraries
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    
+    // Compose
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.bundles.compose)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.hilt.navigation.compose)
+    
+    // Core libraries
+    implementation(libs.bundles.room)
+    kapt(libs.room.compiler)
+    implementation(libs.bundles.coroutines)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.bundles.accompanist)
+    
+    // Sentry
+    implementation(libs.sentry.android)
+    implementation(libs.sentry.compose)
+    
+    // Testing - Unit tests
+    testImplementation(libs.bundles.testing)
+    testImplementation(libs.bundles.junit5)
+    testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
+    
+    // Testing - Instrumented tests
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.mockk.android)
+    
+    // Debug
+    debugImplementation(libs.bundles.compose.debug)
+}

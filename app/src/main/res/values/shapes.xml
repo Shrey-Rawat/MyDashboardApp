@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Simple Shape Definitions for Basic Radius -->
+    <!-- Note: These are simplified shapes that don't use Material Design shape theming -->
+    
+    <!-- Base ShapeAppearance -->
+    <style name="ShapeAppearance">
+        <!-- Base styling -->
+    </style>
+    
+    <!-- Base shape appearance -->
+    <style name="ShapeAppearance.BestProductivityApp">
+        <!-- Base styling -->
+    </style>
+    
+    <!-- Corner styles - using basic dimensions -->
+    <style name="ShapeAppearance.BestProductivityApp.CornerExtraLarge">
+        <!-- 28dp corners -->
+    </style>
+
+    <style name="ShapeAppearance.BestProductivityApp.CornerLarge">
+        <!-- 16dp corners -->
+    </style>
+
+    <style name="ShapeAppearance.BestProductivityApp.CornerMedium">
+        <!-- 12dp corners -->
+    </style>
+
+    <style name="ShapeAppearance.BestProductivityApp.CornerSmall">
+        <!-- 8dp corners -->
+    </style>
+
+    <style name="ShapeAppearance.BestProductivityApp.CornerExtraSmall">
+        <!-- 4dp corners -->
+    </style>
+
+    <!-- Card shapes -->
+    <style name="ShapeAppearance.BestProductivityApp.Card">
+        <!-- 12dp card corners -->
+    </style>
+
+    <!-- Button shapes -->
+    <style name="ShapeAppearance.BestProductivityApp.Button">
+        <!-- 20dp button corners -->
+    </style>
+
+    <!-- Chip shapes -->
+    <style name="ShapeAppearance.BestProductivityApp.Chip">
+        <!-- 8dp chip corners -->
+    </style>
+
+    <!-- Dialog shapes -->
+    <style name="ShapeAppearance.BestProductivityApp.Dialog">
+        <!-- 28dp dialog corners -->
+    </style>
+
+    <!-- Bottom sheet shapes -->
+    <style name="ShapeAppearance.BestProductivityApp.BottomSheet">
+        <!-- Top corners 28dp, bottom corners 0dp -->
+    </style>
+
+    <!-- Expressive shapes for productivity elements -->
+    <style name="ShapeAppearance.BestProductivityApp.TaskCard">
+        <!-- 12dp task card corners -->
+    </style>
+
+    <style name="ShapeAppearance.BestProductivityApp.FloatingActionButton">
+        <!-- 16dp FAB corners -->
+    </style>
+</resources>

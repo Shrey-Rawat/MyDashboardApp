@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 Expressive Typography -->
+    
+    <!-- Base TextAppearance styles -->
+    <style name="TextAppearance">
+        <!-- Base text appearance -->
+    </style>
+    
+    <style name="TextAppearance.BestProductivityApp">
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">400</item>
+    </style>
+    
+    <!-- Display styles -->
+    <style name="TextAppearance.BestProductivityApp.DisplayLarge">
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">400</item>
+        <item name="android:textSize">57sp</item>
+        <item name="android:lineHeight">64sp</item>
+        <item name="android:letterSpacing">-0.02</item>
+    </style>
+
+    <style name="TextAppearance.BestProductivityApp.DisplayMedium" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">400</item>
+        <item name="android:textSize">45sp</item>
+        <item name="android:lineHeight">52sp</item>
+        <item name="android:letterSpacing">0.0</item>
+    </style>
+
+    <style name="TextAppearance.BestProductivityApp.DisplaySmall" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">400</item>
+        <item name="android:textSize">36sp</item>
+        <item name="android:lineHeight">44sp</item>
+        <item name="android:letterSpacing">0.0</item>
+    </style>
+
+    <!-- Headline styles -->
+    <style name="TextAppearance.BestProductivityApp.HeadlineLarge" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">400</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:lineHeight">40sp</item>
+        <item name="android:letterSpacing">0.0</item>
+    </style>
+
+    <style name="TextAppearance.BestProductivityApp.HeadlineMedium" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">400</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:lineHeight">36sp</item>
+        <item name="android:letterSpacing">0.0</item>
+    </style>
+
+    <style name="TextAppearance.BestProductivityApp.HeadlineSmall" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">400</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:lineHeight">32sp</item>
+        <item name="android:letterSpacing">0.0</item>
+    </style>
+
+    <!-- Title styles -->
+    <style name="TextAppearance.BestProductivityApp.TitleLarge" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:lineHeight">28sp</item>
+        <item name="android:letterSpacing">0.0</item>
+    </style>
+
+    <style name="TextAppearance.BestProductivityApp.TitleMedium" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineHeight">24sp</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+
+    <style name="TextAppearance.BestProductivityApp.TitleSmall" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:letterSpacing">0.007</item>
+    </style>
+
+    <!-- Body styles -->
+    <style name="TextAppearance.BestProductivityApp.BodyLarge" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">400</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineHeight">24sp</item>
+        <item name="android:letterSpacing">0.03</item>
+    </style>
+
+    <style name="TextAppearance.BestProductivityApp.BodyMedium" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">400</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:letterSpacing">0.018</item>
+    </style>
+
+    <style name="TextAppearance.BestProductivityApp.BodySmall" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">400</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:letterSpacing">0.03</item>
+    </style>
+
+    <!-- Label styles -->
+    <style name="TextAppearance.BestProductivityApp.LabelLarge" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:letterSpacing">0.007</item>
+    </style>
+
+    <style name="TextAppearance.BestProductivityApp.LabelMedium" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
+
+    <style name="TextAppearance.BestProductivityApp.LabelSmall" >
+        <item name="fontFamily">sans-serif</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:letterSpacing">0.045</item>
+    </style>
+</resources>

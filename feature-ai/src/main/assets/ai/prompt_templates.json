@@ -1,0 +1,84 @@
+{
+  "templates": [
+    {
+      "id": "task_organization",
+      "title": "Task Organization",
+      "description": "Help organize and prioritize tasks",
+      "content": "Please help me organize and prioritize my tasks for {{timeframe}}. Consider urgency, importance, and dependencies. My tasks are:\n\n{{tasks}}",
+      "category": "Productivity",
+      "variables": ["timeframe", "tasks"],
+      "isBuiltIn": true,
+      "createdAt": 1704067200000
+    },
+    {
+      "id": "weekly_summary",
+      "title": "Weekly Summary",
+      "description": "Generate a productivity summary",
+      "content": "Based on my productivity data, please provide a weekly summary focusing on:\n- Completed tasks and achievements\n- Time spent on different activities\n- Areas for improvement\n- Recommendations for next week\n\nData: {{productivity_data}}",
+      "category": "Analytics",
+      "variables": ["productivity_data"],
+      "isBuiltIn": true,
+      "createdAt": 1704067200000
+    },
+    {
+      "id": "goal_setting",
+      "title": "Goal Setting",
+      "description": "Help set SMART goals",
+      "content": "Help me create SMART goals (Specific, Measurable, Achievable, Relevant, Time-bound) for {{area}}. My current situation is: {{current_situation}}\n\nMy desired outcome is: {{desired_outcome}}",
+      "category": "Planning",
+      "variables": ["area", "current_situation", "desired_outcome"],
+      "isBuiltIn": true,
+      "createdAt": 1704067200000
+    },
+    {
+      "id": "meeting_preparation",
+      "title": "Meeting Preparation",
+      "description": "Prepare for meetings effectively",
+      "content": "Help me prepare for a {{meeting_type}} meeting about {{topic}} scheduled for {{date}}. \n\nAttendees: {{attendees}}\nObjectives: {{objectives}}\n\nPlease suggest:\n1. Agenda items\n2. Key questions to ask\n3. Materials to prepare\n4. Follow-up actions",
+      "category": "Communication",
+      "variables": ["meeting_type", "topic", "date", "attendees", "objectives"],
+      "isBuiltIn": true,
+      "createdAt": 1704067200000
+    },
+    {
+      "id": "workout_plan",
+      "title": "Workout Plan",
+      "description": "Create a personalized workout routine",
+      "content": "Create a {{duration}} workout plan for {{fitness_goal}}. \n\nMy current fitness level: {{fitness_level}}\nAvailable equipment: {{equipment}}\nTime per session: {{session_time}}\nFrequency: {{frequency}}\n\nPlease include exercises, sets, reps, and progression tips.",
+      "category": "Fitness",
+      "variables": ["duration", "fitness_goal", "fitness_level", "equipment", "session_time", "frequency"],
+      "isBuiltIn": true,
+      "createdAt": 1704067200000
+    },
+    {
+      "id": "meal_planning",
+      "title": "Meal Planning",
+      "description": "Plan healthy meals based on preferences",
+      "content": "Create a {{duration}} meal plan with the following requirements:\n\nDietary restrictions: {{restrictions}}\nCalorie target: {{calories}}\nMeal count per day: {{meal_count}}\nPreferred cuisines: {{cuisines}}\nCooking time preference: {{cooking_time}}\n\nInclude shopping list and prep instructions.",
+      "category": "Nutrition",
+      "variables": ["duration", "restrictions", "calories", "meal_count", "cuisines", "cooking_time"],
+      "isBuiltIn": true,
+      "createdAt": 1704067200000
+    },
+    {
+      "id": "budget_analysis",
+      "title": "Budget Analysis",
+      "description": "Analyze spending patterns and suggest improvements",
+      "content": "Analyze my spending patterns and provide financial advice:\n\nMonthly income: {{income}}\nFixed expenses: {{fixed_expenses}}\nVariable spending: {{variable_spending}}\nSavings goal: {{savings_goal}}\n\nPlease provide:\n1. Spending analysis\n2. Budget recommendations\n3. Savings strategies\n4. Areas to optimize",
+      "category": "Finance",
+      "variables": ["income", "fixed_expenses", "variable_spending", "savings_goal"],
+      "isBuiltIn": true,
+      "createdAt": 1704067200000
+    },
+    {
+      "id": "learning_plan",
+      "title": "Learning Plan",
+      "description": "Create a structured learning plan",
+      "content": "Create a learning plan for {{subject}} with the following details:\n\nCurrent knowledge level: {{level}}\nTime available per day: {{daily_time}}\nTarget completion: {{target_date}}\nPreferred learning style: {{learning_style}}\nGoal: {{learning_goal}}\n\nInclude resources, milestones, and assessment methods.",
+      "category": "Education",
+      "variables": ["subject", "level", "daily_time", "target_date", "learning_style", "learning_goal"],
+      "isBuiltIn": true,
+      "createdAt": 1704067200000
+    }
+  ]
+}

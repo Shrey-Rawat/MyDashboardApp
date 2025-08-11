@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+   Sample backup rules file; uncomment and customize as necessary.
+   See https://developer.android.com/guide/topics/data/autobackup
+   for details.
+   Note: This file is ignored for devices older than API 23.
+-->
+<full-backup-content>
+    <!-- Exclude app data that should not be backed up -->
+    <exclude domain="sharedpref" path="device_prefs.xml"/>
+    <exclude domain="sharedpref" path="app_preferences.xml"/>
+    <exclude domain="database" path="room_database.db"/>
+    <exclude domain="database" path="room_database.db-shm"/>
+    <exclude domain="database" path="room_database.db-wal"/>
+</full-backup-content>
